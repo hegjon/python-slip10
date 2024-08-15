@@ -1,4 +1,4 @@
-from bip32.ripemd160 import ripemd160
+from slip10.ripemd160 import ripemd160
 
 
 def test_ripemd():

@@ -1,20 +1,11 @@
-import base58
 import hashlib
 import hmac
 
-from .utils import (
-    HARDENED_INDEX,
-    _derive_hardened_private_child,
-    _derive_unhardened_private_child,
-    _derive_public_child,
-    _serialize_extended_key,
-    _unserialize_extended_key,
-    _hardened_index_in_path,
-    _privkey_to_pubkey,
-    _deriv_path_str_to_list,
-    _pubkey_is_valid,
-    _privkey_is_valid,
-)
+import base58
+
+from .utils import (HARDENED_INDEX, _deriv_path_str_to_list,
+                    _get_curve_by_name, _hardened_index_in_path,
+                    _serialize_extended_key, _unserialize_extended_key)
 
 
 class PrivateDerivationError(ValueError):
@@ -35,7 +26,7 @@ class ParsingError(ValueError):
         self.message = message
 
 
-class BIP32:
+class SLIP10:
     def __init__(
         self,
         chaincode,
@@ -45,6 +36,7 @@ class BIP32:
         depth=0,
         index=0,
         network="main",
+        curve_name="secp256k1",
     ):
         """
         :param chaincode: The master chaincode, used to derive keys. As bytes.
@@ -62,7 +54,13 @@ class BIP32:
         :param index: If we are instanciated from an existing extended key, we
                       need this for serialization.
         :param network: Either "main" or "test".
+        :param curve_name: Either "secp256k1", "secp256r1", "ed25519" or "curve25519".
         """
+        try:
+            curve = _get_curve_by_name(curve_name)
+        except ValueError as e:
+            raise InvalidInputError(e) from None
+
         if network not in ["main", "test"]:
             raise InvalidInputError("'network' must be one of 'main' or 'test'")
         if not isinstance(chaincode, bytes):
@@ -72,15 +70,15 @@ class BIP32:
         if privkey is not None:
             if not isinstance(privkey, bytes):
                 raise InvalidInputError("'privkey' must be bytes")
-            if not _privkey_is_valid(privkey):
-                raise InvalidInputError("Invalid secp256k1 private key")
+            if not curve.privkey_is_valid(privkey):
+                raise InvalidInputError("Invalid private key")
         if pubkey is not None:
             if not isinstance(pubkey, bytes):
                 raise InvalidInputError("'pubkey' must be bytes")
-            if not _pubkey_is_valid(pubkey):
-                raise InvalidInputError("Invalid secp256k1 public key")
+            if not curve.pubkey_is_valid(pubkey):
+                raise InvalidInputError("Invalid public key")
         else:
-            pubkey = _privkey_to_pubkey(privkey)
+            pubkey = curve.privkey_to_pubkey(privkey)
         if depth == 0:
             if fingerprint != bytes(4):
                 raise InvalidInputError(
@@ -98,6 +96,7 @@ class BIP32:
         self.depth = depth
         self.index = index
         self.network = network
+        self.curve = curve
 
     def get_extended_privkey_from_path(self, path):
         """Get an extended privkey from a derivation path.
@@ -114,14 +113,9 @@ class BIP32:
 
         chaincode, privkey = self.chaincode, self.privkey
         for index in path:
-            if index & HARDENED_INDEX:
-                privkey, chaincode = _derive_hardened_private_child(
-                    privkey, chaincode, index
-                )
-            else:
-                privkey, chaincode = _derive_unhardened_private_child(
-                    privkey, chaincode, index
-                )
+            privkey, chaincode = self.curve.derive_private_child(
+                privkey, chaincode, index
+            )
 
         return chaincode, privkey
 
@@ -156,20 +150,15 @@ class BIP32:
         # everything from private keys.
         if _hardened_index_in_path(path):
             for index in path:
-                if index & HARDENED_INDEX:
-                    key, chaincode = _derive_hardened_private_child(
-                        key, chaincode, index
-                    )
-                else:
-                    key, chaincode = _derive_unhardened_private_child(
-                        key, chaincode, index
-                    )
-                pubkey = _privkey_to_pubkey(key)
+                key, chaincode = self.curve.derive_private_child(key, chaincode, index)
+                pubkey = self.curve.privkey_to_pubkey(key)
         # We won't need private keys for the whole path, so let's only use
         # public key derivation.
         else:
             for index in path:
-                pubkey, chaincode = _derive_public_child(pubkey, chaincode, index)
+                pubkey, chaincode = self.curve.derive_public_child(
+                    pubkey, chaincode, index
+                )
 
         return chaincode, pubkey
 
@@ -278,7 +267,7 @@ class BIP32:
 
     @classmethod
     def from_xpriv(cls, xpriv):
-        """Get a BIP32 "wallet" out of this xpriv
+        """Get a SLIP10 "wallet" out of this xpriv
 
         :param xpriv: (str) The encoded serialized extended private key.
         """
@@ -300,13 +289,13 @@ class BIP32:
 
         try:
             # We need to remove the trailing `0` before the actual private key !!
-            return BIP32(chaincode, key[1:], None, fingerprint, depth, index, network)
+            return SLIP10(chaincode, key[1:], None, fingerprint, depth, index, network)
         except InvalidInputError as e:
             raise ParsingError(f"Invalid xpriv: '{e}'")
 
     @classmethod
     def from_xpub(cls, xpub):
-        """Get a BIP32 "wallet" out of this xpub
+        """Get a SLIP10 "wallet" out of this xpub
 
         :param xpub: (str) The encoded serialized extended public key.
         """
@@ -324,15 +313,23 @@ class BIP32:
         ) = _unserialize_extended_key(extended_key)
 
         try:
-            return BIP32(chaincode, None, key, fingerprint, depth, index, network)
+            return SLIP10(chaincode, None, key, fingerprint, depth, index, network)
         except InvalidInputError as e:
             raise ParsingError(f"Invalid xpub: '{e}'")
 
     @classmethod
-    def from_seed(cls, seed, network="main"):
-        """Get a BIP32 "wallet" out of this seed (maybe after BIP39?)
+    def from_seed(cls, seed, network="main", curve_name="secp256k1"):
+        """Get a SLIP10 "wallet" out of this seed seed byte sequence, which can be a BIP39
+        binary seed or a SLIP39 master secret.
 
         :param seed: The seed as bytes.
         """
-        secret = hmac.new("Bitcoin seed".encode(), seed, hashlib.sha512).digest()
-        return BIP32(secret[32:], secret[:32], network=network)
+
+        try:
+            curve = _get_curve_by_name(curve_name)
+        except ValueError as e:
+            raise InvalidInputError(e) from None
+
+        chaincode, privkey = curve.generate_master(seed)
+
+        return SLIP10(chaincode, privkey, network=network, curve_name=curve_name)

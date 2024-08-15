@@ -1,7 +1,11 @@
 *__pycache__*
 *venv*
 *tags*
-bip32.egg-info/
+*.egg-info
 build/
 dist/
-TODO
+.vscode/
+.pytest_cache
+*.swp
+*.py[co]
+poetry.lock
