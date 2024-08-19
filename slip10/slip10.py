@@ -5,7 +5,8 @@ import base58
 
 from .utils import (HARDENED_INDEX, _deriv_path_str_to_list,
                     _get_curve_by_name, _hardened_index_in_path,
-                    _serialize_extended_key, _unserialize_extended_key)
+                    _pubkey_to_fingerprint, _serialize_extended_key,
+                    _unserialize_extended_key)
 
 
 class PrivateDerivationError(ValueError):
@@ -77,6 +78,8 @@ class SLIP10:
                 raise InvalidInputError("'pubkey' must be bytes")
             if not curve.pubkey_is_valid(pubkey):
                 raise InvalidInputError("Invalid public key")
+            if privkey is not None and pubkey != curve.privkey_to_pubkey(privkey):
+                raise InvalidInputError("Public key does not match private key")
         else:
             pubkey = curve.privkey_to_pubkey(privkey)
         if depth == 0:
@@ -97,6 +100,51 @@ class SLIP10:
         self.index = index
         self.network = network
         self.curve = curve
+
+    def get_child_from_path(self, path):
+        """Get an child node from a derivation path.
+
+        :param path: A list of integers (index of each depth) or a string with
+                     m/x/x'/x notation. (e.g. m/0'/1/2'/2 or m/0H/1/2H/2).
+        :return: chaincode (bytes), pubkey (bytes)
+        """
+        if isinstance(path, str):
+            path = _deriv_path_str_to_list(path)
+
+        if len(path) == 0:
+            return self
+
+        if _hardened_index_in_path(path) and self.privkey is None:
+            raise PrivateDerivationError
+
+        chaincode = self.chaincode
+        privkey = self.privkey
+        if privkey is not None:
+            pubkey = None
+            for index in path:
+                parent_privkey = privkey
+                privkey, chaincode = self.curve.derive_private_child(
+                    privkey, chaincode, index
+                )
+            parent_pubkey = self.curve.privkey_to_pubkey(parent_privkey)
+        else:
+            pubkey = self.pubkey
+            for index in path:
+                parent_pubkey = pubkey
+                pubkey, chaincode = self.curve.derive_public_child(
+                    pubkey, chaincode, index
+                )
+
+        return SLIP10(
+            chaincode,
+            privkey,
+            pubkey,
+            _pubkey_to_fingerprint(parent_pubkey),
+            depth=self.depth + len(path),
+            index=path[-1],
+            network=self.network,
+            curve_name=self.curve.name,
+        )
 
     def get_extended_privkey_from_path(self, path):
         """Get an extended privkey from a derivation path.
