@@ -32,6 +32,11 @@ class ParsingError(ValueError):
         self.message = message
 
 
+class SerializationError(ValueError):
+    def __init__(self, message):
+        self.message = message
+
+
 class SLIP10:
     def __init__(
         self,
@@ -231,6 +236,11 @@ class SLIP10:
                      m/x/x'/x notation. (e.g. m/0'/1/2'/2 or m/0H/1/2H/2).
         :return: The encoded extended pubkey as str.
         """
+        if self.curve.name != "secp256k1":
+            raise SerializationError(
+                "xpriv serialization is supported only for secp256k1"
+            )
+
         if self.privkey is None:
             raise PrivateDerivationError
 
@@ -262,6 +272,11 @@ class SLIP10:
                      m/x/x'/x notation. (e.g. m/0'/1/2'/2 or m/0H/1/2H/2).
         :return: The encoded extended pubkey as str.
         """
+        if self.curve.name != "secp256k1":
+            raise SerializationError(
+                "xpub serialization is supported only for secp256k1"
+            )
+
         if isinstance(path, str):
             path = _deriv_path_str_to_list(path)
 
@@ -292,6 +307,11 @@ class SLIP10:
 
     def get_xpriv_bytes(self):
         """Get the encoded extended private key."""
+        if self.curve.name != "secp256k1":
+            raise SerializationError(
+                "xpriv serialization is supported only for secp256k1"
+            )
+
         if self.privkey is None:
             raise PrivateDerivationError
         return _serialize_extended_key(
@@ -309,6 +329,11 @@ class SLIP10:
 
     def get_xpub_bytes(self):
         """Get the encoded extended public key."""
+        if self.curve.name != "secp256k1":
+            raise SerializationError(
+                "xpub serialization is supported only for secp256k1"
+            )
+
         return _serialize_extended_key(
             self.pubkey,
             self.depth,
