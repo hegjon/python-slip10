@@ -37,8 +37,8 @@ style_check:
 	black slip10/ tests/ *.py --check
 
 style:
-	black slip10/ tests/ *.py
 	isort slip10/ tests/ *.py
+	black slip10/ tests/ *.py
 
 
 .PHONY: clean clean-build clean-pyc clean-test test style_check style

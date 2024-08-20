@@ -3,10 +3,15 @@ import hmac
 
 import base58
 
-from .utils import (HARDENED_INDEX, _deriv_path_str_to_list,
-                    _get_curve_by_name, _hardened_index_in_path,
-                    _pubkey_to_fingerprint, _serialize_extended_key,
-                    _unserialize_extended_key)
+from .utils import (
+    HARDENED_INDEX,
+    _deriv_path_str_to_list,
+    _get_curve_by_name,
+    _hardened_index_in_path,
+    _pubkey_to_fingerprint,
+    _serialize_extended_key,
+    _unserialize_extended_key,
+)
 
 
 class PrivateDerivationError(ValueError):

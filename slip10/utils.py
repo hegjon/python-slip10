@@ -4,9 +4,13 @@ import re
 
 import ecdsa
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-    Ed25519PrivateKey, Ed25519PublicKey)
-from cryptography.hazmat.primitives.asymmetric.x25519 import (X25519PrivateKey,
-                                                              X25519PublicKey)
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
+from cryptography.hazmat.primitives.asymmetric.x25519 import (
+    X25519PrivateKey,
+    X25519PublicKey,
+)
 
 REGEX_DERIVATION_PATH = re.compile("^m(/[0-9]+['hH]?)*$")
 HARDENED_INDEX = 0x80000000

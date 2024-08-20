@@ -3,8 +3,7 @@ import os
 import ecdsa
 import pytest
 
-from slip10 import (HARDENED_INDEX, SLIP10, InvalidInputError,
-                    PrivateDerivationError)
+from slip10 import HARDENED_INDEX, SLIP10, InvalidInputError, PrivateDerivationError
 
 SEED_1 = "000102030405060708090a0b0c0d0e0f"
 SEED_2 = "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542"
