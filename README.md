@@ -36,16 +36,16 @@ pip install slip10
 
 ### Dependencies
 
-This uses [`coincurve`](https://github.com/ofek/coincurve) as a wrapper for [`libsecp256k1`](https://github.com/bitcoin-core/secp256k1) for EC operations.
+This package uses [`ecdsa`](https://pypi.org/project/ecdsa/) as a wrapper for secp256k1 and secp256r1 elliptic curve operations and [`cryptography`](https://pypi.org/project/cryptography/) for Ed25519 and curve25519 operations.
 
 ### Running the test suite
 
 ```
-# From the root of the repository
-python3 -m venv venv
-. venv/bin/activate
-pip install -r requirements.txt && pip install pytest
-PYTHONPATH=$PYTHONPATH:$PWD/slip10 pytest -vvv
+pip3 install poetry
+git clone https://github.com/trezor/python-slip10
+cd python-slip10
+poetry install
+poetry run make test
 ```
 
 ## Interface
@@ -54,9 +54,13 @@ All public keys below are compressed.
 
 All `path` below are a list of integers representing the index of the key at each depth.
 
+`network` is "main" or "test".
+
+`curve_name` is one of "secp256k1", "secp256r1", "ed25519" or "curve25519".
+
 ### SLIP10
 
-#### from_seed(seed)
+#### from_seed(seed, network="main", curve_name="secp256k1")
 
 __*classmethod*__
 
@@ -76,6 +80,10 @@ __*classmethod*__
 Instanciate with an encoded serialized extended public key (as `str`) as master.
 
 You'll only be able to derive unhardened public keys.
+
+#### get_child_from_path(path)
+
+Returns a SLIP10 instance of the child pointed by the path.
 
 #### get_extended_privkey_from_path(path)
 
@@ -112,18 +120,18 @@ path.
 Note that you don't need to have provided the master private key if the path doesn't
 include an index `>= HARDENED_INDEX`.
 
-#### get_xpriv(path)
+#### get_xpriv()
 
 Equivalent to `get_xpriv_from_path([])`.
 
-#### get_xpriv_bytes(path)
+#### get_xpriv_bytes()
 
 Equivalent to `get_xpriv([])`, but not serialized in base58
 
-#### get_xpub(path)
+#### get_xpub()
 
 Equivalent to `get_xpub_from_path([])`.
 
-#### get_xpub_bytes(path)
+#### get_xpub_bytes()
 
 Equivalent to `get_xpub([])`, but not serialized in base58

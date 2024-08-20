@@ -33,10 +33,16 @@ class WeierstrassCurve:
         self.curve = curve
 
     def generate_master(self, seed):
+        """Master key generation in SLIP-0010
+
+        :param seed: Seed byte sequence (BIP-0039 binary seed or SLIP-0039 master secret), as bytes
+
+        :return: (master_privatekey, master_chaincode)
+        """
         while True:
             payload = hmac.new(self.modifier, seed, hashlib.sha512).digest()
             if self.privkey_is_valid(payload[:32]):
-                return payload[32:], payload[:32]
+                return payload[:32], payload[32:]
             seed = payload
 
     def derive_private_child(self, privkey, chaincode, index):
@@ -127,8 +133,14 @@ class EdwardsCurve:
         self.public_key_class = public_key_class
 
     def generate_master(self, seed):
+        """Master key generation in SLIP-0010
+
+        :param seed: Seed byte sequence (BIP-0039 binary seed or SLIP-0039 master secret), as bytes
+
+        :return: (master_privatekey, master_chaincode)
+        """
         secret = hmac.new(self.modifier, seed, hashlib.sha512).digest()
-        return secret[32:], secret[:32]
+        return secret[:32], secret[32:]
 
     def derive_private_child(self, privkey, chaincode, index):
         """A.k.a CKDpriv, in SLIP-0010, but the hardened way

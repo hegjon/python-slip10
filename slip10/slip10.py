@@ -106,7 +106,7 @@ class SLIP10:
 
         :param path: A list of integers (index of each depth) or a string with
                      m/x/x'/x notation. (e.g. m/0'/1/2'/2 or m/0H/1/2H/2).
-        :return: chaincode (bytes), pubkey (bytes)
+        :return: SLIP10 object
         """
         if isinstance(path, str):
             path = _deriv_path_str_to_list(path)
@@ -378,6 +378,6 @@ class SLIP10:
         except ValueError as e:
             raise InvalidInputError(e) from None
 
-        chaincode, privkey = curve.generate_master(seed)
+        privkey, chaincode = curve.generate_master(seed)
 
         return SLIP10(chaincode, privkey, network=network, curve_name=curve_name)
