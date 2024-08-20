@@ -95,7 +95,9 @@ class WeierstrassCurve:
         from ecdsa.ellipticcurve import INFINITY
 
         assert isinstance(pubkey, bytes) and isinstance(chaincode, bytes)
-        assert not index & HARDENED_INDEX
+        if index & HARDENED_INDEX != 0:
+            raise SLIP10DerivationError("Hardened derivation is not possible.")
+
         # payload is the I from the SLIP. Index is 32 bits unsigned int, BE.
         payload = hmac.new(
             chaincode, pubkey + index.to_bytes(4, "big"), hashlib.sha512

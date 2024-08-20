@@ -374,12 +374,11 @@ def test_sanity_checks():
         == "xpub661MyMwAqRbcEm53RLQWUMMcWg4JwWih48oBFLWRVqoAsx5DKFG32yCEv8iH29TWpmo5KTcpsjXcea6Zx4Hc6PAbGnHjEDCf3yHbj7qdpnf"
     )
     # Sanity checks for m/0'/0'/14/0'/18
-    xpriv = slip10.get_xpriv_from_path(
-        [HARDENED_INDEX, HARDENED_INDEX, 14, HARDENED_INDEX, 18]
-    )
-    xpub = slip10.get_xpub_from_path(
-        [HARDENED_INDEX, HARDENED_INDEX, 14, HARDENED_INDEX, 18]
-    )
+    path = [HARDENED_INDEX, HARDENED_INDEX, 14, HARDENED_INDEX, 18]
+    xpriv = slip10.get_xpriv_from_path(path)
+    xpub = slip10.get_xpub_from_path(path)
+    assert xpriv == slip10.get_child_from_path(path).get_xpriv()
+    assert xpub == slip10.get_child_from_path(path).get_xpub()
     assert (
         xpriv
         == "xprvA2YVbLvEeKaPedw7F6RLwG3RgYnTq1xGCyDNMgZNWdEQnSUBQmKEuLyA6TSPsggt5xvyJHLD9L25tNLpQiP4Q8ZkQNo8ueAgeYj5zYq8hSm"
@@ -390,15 +389,17 @@ def test_sanity_checks():
     )
     # Now if we our master is m/0'/0'/14, we should derive the same keys for
     # m/0'/18 !
-    xpriv2 = slip10.get_xpriv_from_path([HARDENED_INDEX, HARDENED_INDEX, 14])
+    xpriv2 = slip10.get_xpriv_from_path(path[:3])
     assert (
         xpriv2
         == "xprv9yQJmvQMywM5i7UNuZ4RQ1A9rEMwAJCExPardkmBCB46S3vBqNEatSwLUrwLNLHBu1Kd9aGxGKDD5YAfs6hRzpYthciAHjtGadxgV2PeqY9"
     )
     slip10 = SLIP10.from_xpriv(xpriv2)
     assert slip10.get_xpriv() == xpriv2
-    assert slip10.get_xpriv_from_path([HARDENED_INDEX, 18]) == xpriv
-    assert slip10.get_xpub_from_path([HARDENED_INDEX, 18]) == xpub
+    assert slip10.get_xpriv_from_path(path[3:]) == xpriv
+    assert slip10.get_child_from_path(path[3:]).get_xpriv() == xpriv
+    assert slip10.get_xpub_from_path(path[3:]) == xpub
+    assert slip10.get_child_from_path(path[3:]).get_xpub() == xpub
 
     # We should recognize the networks..
     # .. for xprivs:
@@ -456,10 +457,26 @@ def test_sanity_checks():
     slip10.get_xpub_from_path("m/10000/18")
     with pytest.raises(PrivateDerivationError):
         slip10.get_xpriv()
+
+    with pytest.raises(PrivateDerivationError):
         slip10.get_extended_privkey_from_path("m/0/1/2")
+
+    with pytest.raises(PrivateDerivationError):
         slip10.get_privkey_from_path([9, 8])
+
+    with pytest.raises(PrivateDerivationError):
         slip10.get_pubkey_from_path("m/0'/1")
+
+    with pytest.raises(PrivateDerivationError):
         slip10.get_xpub_from_path("m/10000'/18")
+
+    with pytest.raises(PrivateDerivationError):
+        slip10.get_child_from_path("m/10000'/18")
+
+    # Test get_child_from_path() public key derivation
+    assert slip10.get_child_from_path(
+        "m/10000/18"
+    ).get_xpub() == slip10.get_xpub_from_path("m/10000/18")
 
     # We can't create a SLIP10 for an unknown network (to test InvalidInputError)
     with pytest.raises(InvalidInputError, match="'network' must be one of"):
