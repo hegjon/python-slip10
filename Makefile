@@ -33,12 +33,12 @@ test:
 	pytest
 
 style_check:
-	isort --check-only slip10/ tests/ *.py
-	black slip10/ tests/ *.py --check
+	isort --check-only slip10/ tests/
+	black slip10/ tests/ --check
 
 style:
-	isort slip10/ tests/ *.py
-	black slip10/ tests/ *.py
+	isort slip10/ tests/
+	black slip10/ tests/
 
 
 .PHONY: clean clean-build clean-pyc clean-test test style_check style
