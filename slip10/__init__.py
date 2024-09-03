@@ -1,7 +1,9 @@
+import importlib.metadata
+
 from .slip10 import SLIP10, InvalidInputError, PrivateDerivationError
 from .utils import HARDENED_INDEX, SLIP10DerivationError
 
-__version__ = "1.0.0"
+__version__ = importlib.metadata.version(__package__ or __name__)
 
 __all__ = [
     "SLIP10",
